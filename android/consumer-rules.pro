@@ -1,0 +1,2 @@
+-keep class com.appcat.reactnative.** { *; }
+-keep class com.appcat.core.** { *; }

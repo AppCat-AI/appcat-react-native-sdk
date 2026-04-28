@@ -1,0 +1,10 @@
+node_modules/
+dist/
+android/build/
+.gradle/
+.DS_Store
+*.log
+
+# ios/AppCatCoreKit.xcframework/ is intentionally tracked (closed-source core binary)
+# android/libs/ is intentionally tracked (closed-source core AAR)
+# core/ is intentionally tracked (prebuilt core JS/TS bundles)

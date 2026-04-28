@@ -1,0 +1,53 @@
+{
+  "name": "@appcat/react-native-sdk",
+  "version": "0.1.0",
+  "description": "Server-side attribution SDK for React Native. Improve ROAS with accurate conversion tracking via Meta CAPI, TikTok Events API, Google Ads, and Apple Search Ads.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["AppCatReactNative.podspec", "dist", "core", "ios", "android", "README.md", "LICENSE"],
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "prepublishOnly": "npm run build"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.0",
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "react-native": ">=0.72.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AppCat-AI/appcat-react-native-sdk.git"
+  },
+  "homepage": "https://github.com/AppCat-AI/appcat-react-native-sdk",
+  "bugs": {
+    "url": "https://github.com/AppCat-AI/appcat-react-native-sdk/issues"
+  },
+  "keywords": [
+    "react-native",
+    "attribution",
+    "deferred-deep-links",
+    "meta-capi",
+    "tiktok-events-api",
+    "google-ads",
+    "apple-search-ads",
+    "server-side-tracking",
+    "conversions-api",
+    "mobile-attribution"
+  ]
+}
