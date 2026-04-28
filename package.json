@@ -1,6 +1,6 @@
 {
   "name": "@appcat/react-native-sdk",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Server-side attribution SDK for React Native. Improve ROAS with accurate conversion tracking via Meta CAPI, TikTok Events API, Google Ads, and Apple Search Ads.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

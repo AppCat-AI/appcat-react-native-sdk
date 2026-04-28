@@ -11,6 +11,17 @@ Track events and attribute installs across Meta, TikTok, Google Ads, and Apple S
 - Retrieve the AppCat device ID and attribution data
 - Use the native backend in development/bare builds, with a JS fallback for Expo Go or runtimes without native modules
 
+## Get an API Key
+
+You need an AppCat API key (and optionally an App ID) before the SDK can run.
+
+1. Sign up at [appcat.ai](https://appcat.ai).
+2. Click **+ New Product** in the top right and create your app. Select the platforms your RN app targets (iOS, Android, or both).
+3. In the sidebar, open **SDK Guides → API Key Management**.
+4. Copy your **API Key**. The **App ID** is optional — it can be resolved automatically from the API key.
+
+Pass these into `AppCat.init(...)` below.
+
 ## Features (with examples)
 
 ### Getting Started

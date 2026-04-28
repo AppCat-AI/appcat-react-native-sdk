@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name         = "AppCatReactNative"
-  s.version      = "0.1.0"
+  s.version      = "0.1.2"
   s.summary      = "AppCat React Native SDK — deferred deep link resolution and attribution"
   s.homepage     = "https://github.com/AppCat-AI/appcat-react-native-sdk"
   s.license      = { :type => "MIT" }
