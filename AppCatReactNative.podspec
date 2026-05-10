@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name         = "AppCatReactNative"
-  s.version      = "0.1.3"
+  s.version      = "0.1.4"
   s.summary      = "AppCat React Native SDK — deferred deep link resolution and attribution"
   s.homepage     = "https://github.com/AppCat-AI/appcat-react-native-sdk"
   s.license      = { :type => "MIT" }
@@ -15,6 +15,16 @@ Pod::Spec.new do |s|
 
   # Closed-source core framework (pre-built)
   s.vendored_frameworks = "ios/AppCatCoreKit.xcframework"
+
+  s.pod_target_xcconfig = {
+    "DEFINES_MODULE" => "YES",
+    "HEADER_SEARCH_PATHS" => [
+      '"$(PODS_ROOT)/Headers/Public/React-Core"',
+      '"$(PODS_ROOT)/Headers/Public/React-Core/React"',
+      '"$(PODS_ROOT)/Headers/Public/ReactCommon"',
+      '"$(PODS_ROOT)/Headers/Public/React-RCTBridge"',
+    ].join(" "),
+  }
 
   s.dependency "React-Core"
 
