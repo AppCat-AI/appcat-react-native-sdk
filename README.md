@@ -154,7 +154,7 @@ CocoaPods dependencies (including the `AppCatCoreKit.xcframework`) are resolved 
 
 | Platform | Minimum Version |
 |----------|----------------|
-| iOS | 13.0+ |
+| iOS | 15.0+ |
 | Android | 5.0+ (API 21) |
 | React Native | 0.72+ |
 | Expo SDK | 49+ (development build recommended; Expo Go uses JS fallback) |

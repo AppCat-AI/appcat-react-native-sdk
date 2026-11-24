@@ -1,13 +1,13 @@
 Pod::Spec.new do |s|
   s.name         = "AppCatReactNative"
-  s.version      = "0.1.5"
+  s.version      = "0.1.6"
   s.summary      = "AppCat React Native SDK — deferred deep link resolution and attribution"
   s.homepage     = "https://github.com/AppCat-AI/appcat-react-native-sdk"
   s.license      = { :type => "MIT" }
   s.author       = "AppCat"
   s.source       = { :git => "https://github.com/AppCat-AI/appcat-react-native-sdk.git", :tag => s.version }
 
-  s.platform     = :ios, "13.0"
+  s.platform     = :ios, "15.0"
   s.swift_version = "5.10"
 
   # Paths relative to this podspec (package root); native sources live under ios/
