@@ -176,6 +176,17 @@ describe('sendEvent()', () => {
     );
   });
 
+  it('routes eventTimeUnix to options, not custom params', async () => {
+    await AppCat.init(validConfig);
+    AppCat.sendEvent('Purchase', { orderId: 'ord_123', eventTimeUnix: 1700000000 });
+
+    expect(nativeMock.sendEvent).toHaveBeenCalledWith(
+      'Purchase',
+      { orderId: 'ord_123' },
+      { eventTimeUnix: 1700000000 },
+    );
+  });
+
   it('passes empty objects when params are omitted', async () => {
     await AppCat.init(validConfig);
     AppCat.sendEvent('ViewContent');

@@ -136,6 +136,16 @@ npx react-native run-android
 
 The closed-source `appcat-core.aar` is bundled inside the npm package under `android/libs/` and the SDK module's `build.gradle` declares a local `flatDir` repository to find it. No extra steps required for native Android builds.
 
+**Advertising ID (optional).** Advertising ID collection on Android is opt-in. The SDK does not pull in Google's advertising ID library, so by default no advertising ID is collected or sent. To include it, add the library to your app's `android/app/build.gradle`:
+
+```gradle
+dependencies {
+  implementation "com.google.android.gms:play-services-ads-identifier:18.0.1"
+}
+```
+
+This library adds the `com.google.android.gms.permission.AD_ID` permission to your app. Everything else works the same with or without it.
+
 ### iOS — No Additional Configuration
 
 CocoaPods dependencies (including the `AppCatCoreKit.xcframework`) are resolved automatically via the podspec bundled with the package.

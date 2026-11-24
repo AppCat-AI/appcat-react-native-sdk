@@ -60,4 +60,13 @@ dependencies {
   // Once published to Maven Central, replace with:
   // implementation "com.appcat:core:0.1.0"
   implementation(name: 'appcat-core', ext: 'aar')
+
+  // Runtime dependency of the core AAR. A flatDir AAR carries no POM, so
+  // Gradle cannot resolve it transitively; it must be declared here.
+  // Keep the version in sync with appcat-core-android/build.gradle.
+  implementation "com.android.installreferrer:installreferrer:2.2"
+
+  // play-services-ads-identifier is deliberately NOT declared: it adds the
+  // AD_ID permission to every app. Advertising ID collection is opt-in, apps
+  // that want it add the library themselves (see README).
 }

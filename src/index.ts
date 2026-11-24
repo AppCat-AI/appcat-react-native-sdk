@@ -25,6 +25,17 @@
  *   - Every other method swallows errors, invokes `onError` if provided,
  *     and returns a typed fallback. The host app is never taken down by
  *     an unhandled promise rejection from this SDK.
+ *
+ * Events and init():
+ *   - `sendEvent()` before `init()` has been called is dropped (reported as
+ *     `NOT_CONFIGURED`).
+ *   - `sendEvent()` while an `init()` call is in flight is held and delivered,
+ *     in call order, as soon as `init()` resolves. At most
+ *     `MAX_PENDING_EVENTS` are held; beyond that the oldest are dropped.
+ *   - If that `init()` rejects, the held events are kept (same cap) and
+ *     delivered when a later `init()` call succeeds. `reset()` discards them.
+ *   - A held event is reported with the time `sendEvent()` was called, not the
+ *     time it is finally delivered (unless the caller set `eventTimeUnix`).
  */
 
 import { resolveBackend, resetBackend, type CoreBackend } from './CoreBackend';
@@ -44,11 +55,18 @@ import { AppCatError, LogLevel } from './types';
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-const EVENT_OPTIONS_KEYS = new Set(['eventId', 'value', 'currency', 'testEventCode']);
+const EVENT_OPTIONS_KEYS = new Set([
+  'eventId',
+  'value',
+  'currency',
+  'testEventCode',
+  'eventTimeUnix',
+]);
 
 /**
  * Splits a flat SendEventParams object into the two-arg shape the core bridge
- * expects: { params } (custom_data) and { options } (eventId/value/currency).
+ * expects: { params } (custom_data) and { options }
+ * (eventId/value/currency/testEventCode/eventTimeUnix).
  */
 function splitEventParams(flat: SendEventParams): {
   params: Record<string, unknown>;
@@ -77,6 +95,17 @@ function _logWarn(msg: string): void {
     try {
       // eslint-disable-next-line no-console
       console.warn(msg);
+    } catch {
+      // console can throw in exotic runtimes — ignore
+    }
+  }
+}
+
+function _logDebug(msg: string): void {
+  if (__DEV__) {
+    try {
+      // eslint-disable-next-line no-console
+      console.debug(msg);
     } catch {
       // console can throw in exotic runtimes — ignore
     }
@@ -112,6 +141,64 @@ function _backend(): CoreBackend | null {
 let initialized = false;
 let _onError: ((error: Error) => void) | undefined;
 let _isNativeBackend = false;
+
+/**
+ * Events sent while `init()` is in flight. `init()` only resolves once the
+ * backend has finished configuring, which can take a few seconds, so events
+ * fired in that window are held here instead of being dropped.
+ */
+interface PendingEvent {
+  readonly name: string;
+  readonly params: Record<string, unknown>;
+  readonly options: Record<string, unknown>;
+}
+
+/** Upper bound on held events, so a stuck or failing init cannot grow memory. */
+const MAX_PENDING_EVENTS = 100;
+
+let _initsInFlight = 0;
+let _pendingEvents: PendingEvent[] = [];
+let _droppedPendingEvents = 0;
+
+/** True when the caller supplied a usable event time (positive Unix seconds). */
+function _hasEventTime(options: Record<string, unknown>): boolean {
+  const t = options.eventTimeUnix;
+  return typeof t === 'number' && Number.isFinite(t) && t > 0;
+}
+
+function _enqueuePendingEvent(event: PendingEvent): void {
+  if (_pendingEvents.length >= MAX_PENDING_EVENTS) {
+    _pendingEvents.shift();
+    _droppedPendingEvents += 1;
+    // Log the first drop only; the total is logged when the queue is flushed.
+    if (_droppedPendingEvents === 1) {
+      _logDebug(
+        `[AppCat] More than ${MAX_PENDING_EVENTS} events sent before init() completed. Dropping the oldest.`,
+      );
+    }
+  }
+  _pendingEvents.push(event);
+}
+
+/** Delivers held events in call order. One failing event never blocks the rest. */
+function _flushPendingEvents(backend: CoreBackend): void {
+  if (_droppedPendingEvents > 0) {
+    _logDebug(
+      `[AppCat] Dropped ${_droppedPendingEvents} event(s) sent before init() completed (limit ${MAX_PENDING_EVENTS}).`,
+    );
+    _droppedPendingEvents = 0;
+  }
+  if (_pendingEvents.length === 0) return;
+  const queued = _pendingEvents;
+  _pendingEvents = [];
+  for (const event of queued) {
+    try {
+      backend.sendEvent(event.name, event.params, event.options);
+    } catch (err) {
+      _reportError(err);
+    }
+  }
+}
 
 const EMPTY_INIT_RESPONSE: InitResponse = { deepLinkParams: null, geo: null };
 const EMPTY_IDENTIFY_RESPONSE: IdentifyResponse = { geo: null, deepLinkParams: null };
@@ -156,6 +243,10 @@ const AppCat = {
     }
     _isNativeBackend = backend.isNative;
 
+    // From here until configure settles, sendEvent() holds events instead of
+    // dropping them (see _enqueuePendingEvent).
+    _initsInFlight += 1;
+
     let result: InitResponse;
     try {
       const options: Record<string, unknown> = {
@@ -184,6 +275,9 @@ const AppCat = {
         _describe(err) || 'configure() failed',
         err,
       );
+    } finally {
+      // On rejection the held events stay queued for a later init() retry.
+      _initsInFlight = Math.max(0, _initsInFlight - 1);
     }
 
     if (cfg.logLevel !== undefined) {
@@ -195,6 +289,7 @@ const AppCat = {
     }
 
     initialized = true;
+    _flushPendingEvents(backend);
     return result ?? EMPTY_INIT_RESPONSE;
   },
 
@@ -221,15 +316,20 @@ const AppCat = {
    * Track a conversion event. Fire-and-forget — never throws.
    *
    * Pass all event data in a single flat object. Reserved keys
-   * (eventId, value, currency, testEventCode) are forwarded as options;
-   * all other keys become custom_data on the event.
+   * (eventId, value, currency, testEventCode, eventTimeUnix) are forwarded
+   * as options; all other keys become custom_data on the event.
+   *
+   * Safe to call right after `init()` without awaiting it: events sent while
+   * `init()` is in flight are held and delivered in order once it resolves.
+   * Events sent before `init()` has been called at all are dropped.
    *
    * @example
    * AppCat.sendEvent('ViewContent', { eventId: `vc_home_${sessionId}` });
    * AppCat.sendEvent('Purchase', { orderId, value: 9.99, currency: 'USD', eventId: `purchase_${orderId}` });
    */
   sendEvent(eventName: EventName, params?: SendEventParams): void {
-    if (!assertInitialized('sendEvent')) return;
+    const initInFlight = !initialized && _initsInFlight > 0;
+    if (!initInFlight && !assertInitialized('sendEvent')) return;
     try {
       if (__DEV__) {
         const revenueEvents: Set<string> = new Set(['Purchase', 'InitiateCheckout']);
@@ -240,6 +340,16 @@ const AppCat = {
         }
       }
       const { params: customData, options } = splitEventParams(params ?? {});
+      if (initInFlight) {
+        // Delivery may be seconds (or, after a failed init, much longer) away.
+        // Pin the event to now so it is not reported late; a time supplied by
+        // the caller always wins.
+        const heldOptions = _hasEventTime(options)
+          ? options
+          : { ...options, eventTimeUnix: Math.floor(Date.now() / 1000) };
+        _enqueuePendingEvent({ name: eventName, params: customData, options: heldOptions });
+        return;
+      }
       const backend = _backend();
       if (!backend) return;
       backend.sendEvent(eventName, customData, options);
@@ -356,6 +466,9 @@ const AppCat = {
     initialized = false;
     _onError = undefined;
     _isNativeBackend = false;
+    _initsInFlight = 0;
+    _pendingEvents = [];
+    _droppedPendingEvents = 0;
     resetBackend();
   },
 };

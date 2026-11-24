@@ -171,6 +171,11 @@ export interface SendEventParams {
   readonly value?: number;
   readonly currency?: string;
   readonly testEventCode?: string | null;
+  /**
+   * When the event happened, in Unix seconds. Optional: defaults to the moment
+   * `sendEvent()` is called. Set it when reporting an event after the fact.
+   */
+  readonly eventTimeUnix?: number;
   readonly [key: string]: unknown;
 }
 
